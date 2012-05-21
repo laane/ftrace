@@ -4,7 +4,8 @@ NAME=		strace
 SRC=		main.c \
 		error.c \
 		child.c \
-		parent.c
+		parent.c \
+		symbolnames.c
 
 OBJ=		$(SRC:.c=.o)
 

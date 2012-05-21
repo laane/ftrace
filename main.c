@@ -96,6 +96,7 @@ static int	launch_program(char **av)
 {
   char		**syscall_strtab;
   char		*bin;
+  sym_strtab	*symtab;
 
   if (!strcmp(av[1], "-p"))
     return usage();
@@ -105,9 +106,10 @@ static int	launch_program(char **av)
   	      av[1]);
       return 1;
     }
-  syscall_strtab = get_syscalls();
-  if (syscall_strtab == NULL)
-    exit_error("file syscall_db unreachable");
+  symtab = get_sym_strtab(bin);
+  /* syscall_strtab = get_syscalls(); */
+  /* if (syscall_strtab == NULL) */
+  /*   exit_error("file syscall_db unreachable"); */
   if ((gl_pid = fork()) == -1)
     exit_error("fork fail");
   if (!gl_pid) /* child */
