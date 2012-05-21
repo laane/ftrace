@@ -107,6 +107,7 @@ static int	launch_program(char **av)
       return 1;
     }
   symtab = get_sym_strtab(bin);
+  return 0;
   /* syscall_strtab = get_syscalls(); */
   /* if (syscall_strtab == NULL) */
   /*   exit_error("file syscall_db unreachable"); */

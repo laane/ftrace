@@ -13,8 +13,10 @@ CFLAGS+=	-W -Wall -ansi -pedantic $(DEFINES) -std=c99
 
 DEFINES=	-D_BSD_SOURCE -D_XOPEN_SOURCE -D_GNU_SOURCE
 
+LIB=		-lelf
+
 $(NAME):	$(OBJ)
-		gcc -o $(NAME) $(OBJ)
+		gcc -o $(NAME) $(OBJ) $(LIB)
 
 all:		$(NAME)
 
