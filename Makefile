@@ -1,5 +1,5 @@
 
-NAME=		strace
+NAME=		ftrace
 
 SRC=		main.c \
 		error.c \
