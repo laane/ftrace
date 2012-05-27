@@ -8,7 +8,10 @@ sym_strtab	*get_sym_strtab(char const* bin)
 {
   Elf*		e;
   GElf_Ehdr	ehdr;
+  Elf_Scn	scn;
+  GElf_Shdr	shdr;
   int		fd;
+  size_t	shstrndx;
 
   if ((fd = open(bin, O_RDONLY, 0)) == -1)
     exit_error("open() fail");
@@ -18,8 +21,12 @@ sym_strtab	*get_sym_strtab(char const* bin)
     exit_error("elf_begin() fail");
   if (elf_kind(e) != ELF_K_ELF)
     exit_error("file to execute is not an ELF file");
-  if (gelf_getehdr(e, &ehdr) == NULL)
-    exit_error("gelf_getehdr() fail");
+  elf_getshdrstrndx(e, &shstrndx);
+  /* scn = NULL; */
+  /* while (scn = elf_nextscn(e, scn)) */
+  /*   { */
+  /*     printf("section N. %d\n", elf_ndxscn(scn)); */
+  /*   } */
 
   elf_end(e);
   close(fd);
