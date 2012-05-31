@@ -96,7 +96,7 @@ static int	launch_program(char **av)
 {
   char		**syscall_strtab;
   char		*bin;
-  sym_strtab	*symtab;
+  sym_strtab	*symlist;
 
   if (!strcmp(av[1], "-p"))
     return usage();
@@ -106,8 +106,18 @@ static int	launch_program(char **av)
   	      av[1]);
       return 1;
     }
-  symtab = get_sym_strtab(bin);
+  symlist = get_sym_strtab(bin);
+
+  while (symlist)
+    {
+      printf("name = %s\taddr = 0x%08x\n", symlist->name, symlist->addr);
+      symlist = symlist->next;
+    }
+
   return 0;
+
+  // ------------------------------------ END !!!!!!!!!!!!!!!!!!!!!!
+
   /* syscall_strtab = get_syscalls(); */
   /* if (syscall_strtab == NULL) */
   /*   exit_error("file syscall_db unreachable"); */

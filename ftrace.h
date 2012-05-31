@@ -28,7 +28,7 @@
 typedef struct sym_strtab	sym_strtab;
 struct		sym_strtab
 {
-  unsigned long	addr;
+  size_t	addr;
   char		name[MAX_NAME_LEN];
   sym_strtab	*next;
 };
