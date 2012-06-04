@@ -61,12 +61,9 @@ static void	load_symtab(sym_strtab **list, Elf *e, Elf_Scn *sym_scn)
   symtab = (Elf64_Sym*) data->d_buf;
   nb_symbols = sym_shdr->sh_size / sym_shdr->sh_entsize;
 
-  for (size_t i = 1; i < nb_symbols; ++i)
-    {
-      if ((symtab[i].st_info & 15) != STT_FILE
-          && (symtab[i].st_info & 15) != STT_SECTION)
-	add_symbol(list, &symtab[i], elf_strptr(e, sym_shdr->sh_link, symtab[i].st_name));
-    }
+  for (size_t i = 0; i < nb_symbols; ++i)
+    if (ELF64_ST_TYPE(symtab[i].st_info) == STT_FUNC)
+      add_symbol(list, &symtab[i], elf_strptr(e, sym_shdr->sh_link, symtab[i].st_name));
 }
 
 sym_strtab	*get_sym_strtab(char const* bin)
