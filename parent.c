@@ -7,11 +7,10 @@
 #include <stdio.h>
 #include "ftrace.h"
 
-static int	get_stopsig(int pid, char **strtab)
+static int	get_stopsig(int pid)
 {
   siginfo_t	sig;
 
-  (void)strtab;
   sig.si_signo = 0;
   if (-1 == ptrace(PTRACE_GETSIGINFO, pid, NULL, &sig))
     return fprintf(stderr, "getsiginfo fail\n");
@@ -31,14 +30,14 @@ static int	get_stopsig(int pid, char **strtab)
   return 1;
 }
 
-static void	trace_process(int pid, char **strtab)
+static void	trace_process(int pid, sym_strtab const* symlist)
 {
   int		status;
 
   while (1)
     {
       wait4(pid, &status, WUNTRACED, NULL);
-      if (get_stopsig(pid, strtab) || !status)
+      if (get_stopsig(pid) || !status)
       	break;
       /*
       ** >.> Do something <.<
@@ -47,7 +46,7 @@ static void	trace_process(int pid, char **strtab)
     }
 }
 
-void		exec_parent(int pid, char **strtab, char flag)
+void		exec_parent(int pid, sym_strtab const* symlist, char flag)
 {
   if (ptrace(PTRACE_ATTACH, pid, NULL, 0) == -1)
     {
@@ -55,5 +54,5 @@ void		exec_parent(int pid, char **strtab, char flag)
 	kill(pid, SIGKILL);
       exit_error("Cannot attach parent process");
     }
-  trace_process(pid, strtab);
+  trace_process(pid, symlist);
 }

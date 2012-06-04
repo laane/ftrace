@@ -57,9 +57,10 @@ static char	*getbinary(char *arg)
     return NULL;
 }
 
-static int	launch_program(char **av, sym_strtab* symlist)
+static int	launch_program(char **av)
 {
     char		*bin;
+    sym_strtab          *symlist;
 
     if (!strcmp(av[1], "-p"))
         return usage();
@@ -69,7 +70,7 @@ static int	launch_program(char **av, sym_strtab* symlist)
                 av[1]);
         return 1;
     }
-
+    symlist = get_sym_strtab(bin);
     //  while (symlist)
     //    {
     //      printf("name = %s\taddr = 0x%08x\n", symlist->name, (unsigned int)symlist->addr);
@@ -81,11 +82,11 @@ static int	launch_program(char **av, sym_strtab* symlist)
     if (!gl_pid) /* child */
         exec_child(bin, ++av);
     else /* parent */
-        exec_parent(gl_pid, syscall_strtab, 1);
+        exec_parent(gl_pid, symlist, 1);
     return 0;
 }
 
-static int	trace_pid(char **av, sym_strtab* symlist)
+static int	trace_pid(char **av)
 {
     if (strcmp(av[1], "-p"))
         return usage();
@@ -95,25 +96,21 @@ static int	trace_pid(char **av, sym_strtab* symlist)
         fprintf(stderr, "Abort: pid incorrect\n");
         return 1;
     }
-    if (syscall_strtab == NULL)
-        exit_error("file syscall_db unreachable");
-    exec_parent(gl_pid, syscall_strtab, 0);
+    exec_parent(gl_pid, NULL, 0);
     return 0;
 }
 
 int		main(int ac, char **av)
 {
-    sym_strtab	*symlist = get_sym_strtab(bin);
-
     if (signal(SIGINT, &handler) == SIG_ERR)
     {
         fprintf(stderr, "Abort: signal failed\n");
         return 1;
     }
     if (ac == 3 && !strcmp(av[1], "-p"))
-        trace_pid(av, symlist);
+        trace_pid(av);
     else if (ac != 1)
-        launch_program(av, symlist);
+        launch_program(av);
     else
         usage();
     return 0;

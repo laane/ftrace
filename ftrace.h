@@ -39,7 +39,7 @@ struct		sym_strtab
 void		exit_error(const char*);
 
 void		exec_child(char*, char **);
-void		exec_parent(int, char **, char);
+void		exec_parent(int, sym_strtab const*, char);
 void		print_args(const char*, char **, struct user, int);
 void		int_enum(int, const char*, int);
 sym_strtab	*get_sym_strtab(char const*);
