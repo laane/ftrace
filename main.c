@@ -59,31 +59,33 @@ static char	*getbinary(char *arg)
 
 static int	launch_program(char **av)
 {
-    char		*bin;
-    sym_strtab          *symlist;
+  char		*bin;
+  sym_strtab          *symlist;
 
-    if (!strcmp(av[1], "-p"))
-        return usage();
-    if (NULL == (bin = getbinary(av[1])))
+  if (!strcmp(av[1], "-p"))
+    return usage();
+  if (NULL == (bin = getbinary(av[1])))
     {
-        fprintf(stderr, "File %s doesnt exist or has not execute permissions\n",
-                av[1]);
-        return 1;
+      fprintf(stderr, "File %s doesnt exist or has not execute permissions\n",
+	      av[1]);
+      return 1;
     }
-    symlist = get_sym_strtab(bin);
-    //  while (symlist)
-    //    {
-    //      printf("name = %s\taddr = 0x%08x\n", symlist->name, (unsigned int)symlist->addr);
-    //      symlist = symlist->next;
-    //    }
+  symlist = get_sym_strtab(bin);
+  if (!symlist)
+    printf("Pas de symboles\n");
+  while (symlist)
+    {
+      printf("name = %s\taddr = 0x%08x\n", symlist->name, (unsigned int)symlist->addr);
+      symlist = symlist->next;
+    }
 
-    if ((gl_pid = fork()) == -1)
-        exit_error("fork fail");
-    if (!gl_pid) /* child */
-        exec_child(bin, ++av);
-    else /* parent */
-        exec_parent(gl_pid, symlist, 1);
-    return 0;
+  if ((gl_pid = fork()) == -1)
+    exit_error("fork fail");
+  if (!gl_pid) /* child */
+    exec_child(bin, ++av);
+  else /* parent */
+    exec_parent(gl_pid, symlist, 1);
+  return 0;
 }
 
 static int	trace_pid(char **av)

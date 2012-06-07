@@ -7,6 +7,20 @@
 #include <stdio.h>
 #include "ftrace.h"
 
+static int	big_to_little_endian(int val)
+{
+  int		ret = 0;
+  char		*oct_val = (char*)&val;
+  char		*oct_ret = (char*)&ret;
+
+  oct_ret[0] = oct_val[3];
+  oct_ret[1] = oct_val[2];
+  oct_ret[2] = oct_val[1];
+  oct_ret[3] = oct_val[0];
+
+  return ret;
+}
+
 static int	get_stopsig(int pid)
 {
   siginfo_t	sig;
@@ -30,19 +44,46 @@ static int	get_stopsig(int pid)
   return 1;
 }
 
+static int	get_call(int pid, sym_strtab const* symlist)
+{
+  struct user	infos;
+  long		word;
+  int		offset;
+
+  if (ptrace(PTRACE_GETREGS, pid, NULL, &infos) == -1)
+    {      fprintf(stderr, "getregs fail\n");      return 1;    }
+  word = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip);
+  if ((word & 0xFFFF) != 0xcde8)
+    return 0;
+
+  fprintf(stdout, "J AI UN CALL: rip = %#lx\t*rip = %#lx\n",
+	  infos.regs.rip, word);
+
+  offset = big_to_little_endian((int)(word >> 16));
+
+  fprintf(stdout, "\t\toffset = %8.8x\taddr = (rip + offset) = %#lx\n",
+	  offset, infos.regs.rip + offset);
+
+  word = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip + offset);
+
+  fprintf(stdout, "\t\tcall = *(rip + offset) = %#lx\n", word);
+  return 0;
+}
+
 static void	trace_process(int pid, sym_strtab const* symlist)
 {
   int		status;
 
   while (1)
     {
-      wait4(pid, &status, WUNTRACED, NULL);
+      if (wait4(pid, &status, WUNTRACED, NULL) == -1)
+	{ fprintf(stderr, "wait4 fail\n"); break; }
       if (get_stopsig(pid) || !status)
       	break;
-      /*
-      ** >.> Do something <.<
-      */
-      ptrace(PTRACE_SINGLESTEP, pid, NULL, 0);
+      if (get_call(pid, symlist))
+      	break;
+      if (ptrace(PTRACE_SINGLESTEP, pid, NULL, 0) == -1)
+	break;
     }
 }
 
