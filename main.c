@@ -1,4 +1,3 @@
-
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -61,6 +60,7 @@ static int	launch_program(char **av)
 {
   char		*bin;
   sym_strtab          *symlist;
+  sym_strtab		*olabackup;
 
   if (!strcmp(av[1], "-p"))
     return usage();
@@ -73,6 +73,7 @@ static int	launch_program(char **av)
   symlist = get_sym_strtab(bin);
   if (!symlist)
     printf("Pas de symboles\n");
+  olabackup = symlist;
   while (symlist)
     {
       printf("name = %s\taddr = 0x%08x\n", symlist->name, (unsigned int)symlist->addr);
@@ -84,7 +85,7 @@ static int	launch_program(char **av)
   if (!gl_pid) /* child */
     exec_child(bin, ++av);
   else /* parent */
-    exec_parent(gl_pid, symlist, 1);
+    exec_parent(gl_pid, olabackup, 1);
   return 0;
 }
 

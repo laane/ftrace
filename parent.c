@@ -55,13 +55,18 @@ static int	get_call(int pid, sym_strtab const* symlist)
   word = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip);
   if ((word & 0xFF) != 0xe8)
     return 0;
+  offset = (int)((word >> 8));
 
-  offset = big_to_little_endian((int)(word >> 8));
-
-  call_addr = infos.regs.rip + (long)offset;
-
-  /* fprintf(stdout, "\t\toffset = %8.8x\trip = %#lx\taddr = (rip + offset) = %#lx\n", */
-  /* 	  offset, infos.regs.rip, call_addr); */
+  call_addr = infos.regs.rip + offset + 5;
+  while (symlist)
+    {
+      if (symlist->addr == call_addr)
+	{
+	  printf("Call to %s\n", symlist->name);
+	  return (0);
+	}
+      symlist = symlist->next;
+    }
   return 0;
 }
 

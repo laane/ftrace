@@ -44,7 +44,7 @@ static void		add_symbol(sym_strtab **list, Elf64_Sym *sym,
 
   if ((elem = malloc(sizeof(*elem))) == NULL)
     return ;
-  elem->addr = sym->st_value + section->sh_offset - section->sh_addr;
+  elem->addr = sym->st_value;
   if (name)
     strcpy(elem->name, name);
   elem->next = *list;
