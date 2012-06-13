@@ -14,21 +14,12 @@
 ** Structures
 */
 
-/* # define	MAXPARAMS	7 */
-
-/* struct	syscalls */
-/* { */
-/*   char	*name; */
-/*   char	*rtype; */
-/*   char	*p[MAXPARAMS];   /\* les parametres *\/ */
-/* }; */
-
 # define MAX_NAME_LEN	512
 
 typedef struct sym_strtab	sym_strtab;
 struct		sym_strtab
 {
-  size_t	addr;
+  unsigned long	addr;
   char		name[MAX_NAME_LEN];
   sym_strtab	*next;
 };

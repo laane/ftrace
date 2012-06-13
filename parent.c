@@ -10,8 +10,8 @@
 static int	big_to_little_endian(int val)
 {
   int		ret = 0;
-  char		*oct_val = (char*)&val;
-  char		*oct_ret = (char*)&ret;
+  unsigned char	*oct_val = (unsigned char*)&val;
+  unsigned char	*oct_ret = (unsigned char*)&ret;
 
   oct_ret[0] = oct_val[3];
   oct_ret[1] = oct_val[2];
@@ -47,26 +47,21 @@ static int	get_stopsig(int pid)
 static int	get_call(int pid, sym_strtab const* symlist)
 {
   struct user	infos;
-  long		word;
+  unsigned long	word, call_addr;
   int		offset;
 
   if (ptrace(PTRACE_GETREGS, pid, NULL, &infos) == -1)
     {      fprintf(stderr, "getregs fail\n");      return 1;    }
   word = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip);
-  if ((word & 0xFFFF) != 0xcde8)
+  if ((word & 0xFF) != 0xe8)
     return 0;
 
-  fprintf(stdout, "J AI UN CALL: rip = %#lx\t*rip = %#lx\n",
-	  infos.regs.rip, word);
+  offset = big_to_little_endian((int)(word >> 8));
 
-  offset = big_to_little_endian((int)(word >> 16));
+  call_addr = infos.regs.rip + (long)offset;
 
-  fprintf(stdout, "\t\toffset = %8.8x\taddr = (rip + offset) = %#lx\n",
-	  offset, infos.regs.rip + offset);
-
-  word = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip + offset);
-
-  fprintf(stdout, "\t\tcall = *(rip + offset) = %#lx\n", word);
+  /* fprintf(stdout, "\t\toffset = %8.8x\trip = %#lx\taddr = (rip + offset) = %#lx\n", */
+  /* 	  offset, infos.regs.rip, call_addr); */
   return 0;
 }
 
