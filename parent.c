@@ -95,28 +95,124 @@ static int	get_call(int pid, sym_strtab const* symlist)
   else if ((word & 0xFF) == 0xFF && (word & 0x3800) == 0x1000)
     {
       unsigned char	rmb;
+      unsigned long	addr;
 
       rmb = (word & 0xFF00) >> 8;
       if (rmb >= 0xD0 && rmb <= 0xD7)
 	{
 	  if (!rexb && rmb == 0xD0)
-	    printf("Call to %#x\n", infos.regs.rax);
+	    addr = infos.regs.rax;
 	  if (!rexb && rmb == 0xD1)
-	    printf("Call to %#x\n", infos.regs.rcx);
+	    addr = infos.regs.rcx;
 	  if (!rexb && rmb == 0xD2)
-	    printf("Call to %#x\n", infos.regs.rdx);
+	    addr = infos.regs.rdx;
 	  if (!rexb && rmb == 0xD3)
-	    printf("Call to %#x\n", infos.regs.rbx);
+	    addr = infos.regs.rbx;
 	  if (!rexb && rmb == 0xD4)
-	    printf("Call to %#x\n", infos.regs.rsp);
+	    addr = infos.regs.rsp;
 	  if (!rexb && rmb == 0xD5)
-	    printf("Call to %#x\n", infos.regs.rbp);
+	    addr = infos.regs.rbp;
 	  if (!rexb && rmb == 0xD6)
-	    printf("Call to %#x\n", infos.regs.rsi);	  
+	    addr = infos.regs.rsi;
 	  if (!rexb && rmb == 0xD7)
-	    printf("Call to %#x\n", infos.regs.rdi);
+	    addr = infos.regs.rdi;
+	  while (symlist)
+	    {
+	      if (symlist->addr == addr)
+		{
+		  printf("Call to %s\n", symlist->name);
+		  return (0);
+		}
+	      symlist = symlist->next;
+	    }
 	}
-      printf("Call FF/2 : %#x\n", word);
+      if (rmb >= 0x10 && rmb <= 0x17)
+	{
+	  if (!rexb && rmb == 0x10)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rax);
+	  if (!rexb && rmb == 0x11)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rcx);
+	  if (!rexb && rmb == 0x12)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdx);
+	  if (!rexb && rmb == 0x13)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbx);
+	  if (!rexb && rmb == 0x14)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsp);
+	  if (!rexb && rmb == 0x15)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbp);
+	  if (!rexb && rmb == 0x16)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsi);
+	  if (!rexb && rmb == 0x17)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdi);
+	  while (symlist)
+	    {
+	      if (symlist->addr == addr)
+		{
+		  printf("Call to %s\n", symlist->name);
+		  return (0);
+		}
+	      symlist = symlist->next;
+	    }
+	}
+      if (rmb >= 0x50 && rmb <= 0x57)
+	{
+	  char	addb;
+	  addb = (word & 0xFF0000) >> 16;
+	  if (!rexb && rmb == 0x50)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rax + addb);
+	  if (!rexb && rmb == 0x51)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rcx + addb);
+	  if (!rexb && rmb == 0x52)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdx + addb);
+	  if (!rexb && rmb == 0x53)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbx + addb);
+	  if (!rexb && rmb == 0x54)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsp + addb);
+	  if (!rexb && rmb == 0x55)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbp + addb);
+	  if (!rexb && rmb == 0x56)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsi + addb);
+	  if (!rexb && rmb == 0x57)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdi + addb);
+	  while (symlist)
+	    {
+	      if (symlist->addr == addr)
+		{
+		  printf("Call to %s\n", symlist->name);
+		  return (0);
+		}
+	      symlist = symlist->next;
+	    }
+	}
+      if (rmb >= 0x90 && rmb <= 0x97)
+	{
+	  unsigned long addb = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip + 2) & 0xFFFFFFFF;
+	  if (!rexb && rmb == 0x90)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rax + addb);
+	  if (!rexb && rmb == 0x91)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rcx + addb);
+	  if (!rexb && rmb == 0x92)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdx + addb);
+	  if (!rexb && rmb == 0x93)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbx + addb);
+	  if (!rexb && rmb == 0x94)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsp + addb);
+	  if (!rexb && rmb == 0x95)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbp + addb);
+	  if (!rexb && rmb == 0x96)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsi + addb);
+	  if (!rexb && rmb == 0x97)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdi + addb);
+	  while (symlist)
+	    {
+	      if (symlist->addr == addr)
+		{
+		  printf("Call to %s\n", symlist->name);
+		  return (0);
+		}
+	      symlist = symlist->next;
+	    }
+	}
     }
   return (0);
 }

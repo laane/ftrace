@@ -65,7 +65,7 @@ static void	load_symtab(sym_strtab **list, Elf_Scn *sym_scn)
   nb_symbols = sym_shdr->sh_size / sym_shdr->sh_entsize;
 
   for (size_t i = 0; i < nb_symbols; ++i)
-    if (ELF64_ST_TYPE(symtab[i].st_info) == STT_FUNC)
+    if (ELF64_ST_TYPE(symtab[i].st_info) == STT_FUNC || ELF64_ST_TYPE(symtab[i].st_info) == STT_NOTYPE)
       add_symbol(list, &symtab[i],
 		 elf_strptr(e, sym_shdr->sh_link, symtab[i].st_name),
 		 sym_shdr);
