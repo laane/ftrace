@@ -75,7 +75,8 @@ static int	get_call(int pid, sym_strtab const* symlist)
 	}
       else
 	{
-	  offset &= 0xFFFFFF;
+	  int val;
+	  val = offset & 0xFFFFFF;
 	  call_addr = infos.regs.rip + offset + 5;
 	}
       while (symlist)
