@@ -24,6 +24,25 @@ struct		sym_strtab
   sym_strtab	*next;
 };
 
+
+typedef struct	calltree_info	calltree_info;
+typedef struct	calltree	calltree;
+
+struct		calltree_info
+{
+  int		nb_called;
+  calltree	*data;
+};
+
+
+struct		calltree
+{
+  int		nb_called;
+  int		total_called;
+  char		*name;
+  calltree_info	*children;
+};
+
 /*
 ** Prototypes
 */

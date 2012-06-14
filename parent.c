@@ -49,25 +49,76 @@ static int	get_call(int pid, sym_strtab const* symlist)
   struct user	infos;
   unsigned long	word, call_addr;
   int		offset;
+  char		rexw = 0;
+  char		rexr = 0;
+  char		rexx = 0;
+  char		rexb = 0;
 
   if (ptrace(PTRACE_GETREGS, pid, NULL, &infos) == -1)
     {      fprintf(stderr, "getregs fail\n");      return 1;    }
   word = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip);
-  if ((word & 0xFF) != 0xe8)
-    return 0;
-  offset = (int)((word >> 8));
-
-  call_addr = infos.regs.rip + offset + 5;
-  while (symlist)
+  if ((word & 0xF0) == 0x40)
     {
-      if (symlist->addr == call_addr)
-	{
-	  printf("Call to %s\n", symlist->name);
-	  return (0);
-	}
-      symlist = symlist->next;
+      rexw = word & 0x8;
+      rexr = word & 0x4;
+      rexx = word & 0x2;
+      rexb = word & 0x1;
+      word = ptrace(PTRACE_PEEKTEXT, pid, ++infos.regs.rip);
     }
-  return 0;
+  if ((word & 0xFF) == 0xe8)
+    {
+      offset = (int)((word >> 8));
+      if (rexw)
+	{
+	  offset = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip + 1);
+	  call_addr = infos.regs.rip + offset + 9;
+	}
+      else
+	{
+	  offset &= 0xFFFFFF;
+	  call_addr = infos.regs.rip + offset + 5;
+	}
+      while (symlist)
+	{
+	  if (symlist->addr == call_addr)
+	    {
+	      printf("Call to %s\n", symlist->name);
+	      return (0);
+	    }
+	  symlist = symlist->next;
+	}
+    }
+  else if ((word & 0xFF) == 0xFF && (word & 0x3800) == 0x1800)
+    {
+      printf("Call FF/3 : %#x\n", word);
+    }
+  else if ((word & 0xFF) == 0xFF && (word & 0x3800) == 0x1000)
+    {
+      unsigned char	rmb;
+
+      rmb = (word & 0xFF00) >> 8;
+      if (rmb >= 0xD0 && rmb <= 0xD7)
+	{
+	  if (!rexb && rmb == 0xD0)
+	    printf("Call to %#x\n", infos.regs.rax);
+	  if (!rexb && rmb == 0xD1)
+	    printf("Call to %#x\n", infos.regs.rcx);
+	  if (!rexb && rmb == 0xD2)
+	    printf("Call to %#x\n", infos.regs.rdx);
+	  if (!rexb && rmb == 0xD3)
+	    printf("Call to %#x\n", infos.regs.rbx);
+	  if (!rexb && rmb == 0xD4)
+	    printf("Call to %#x\n", infos.regs.rsp);
+	  if (!rexb && rmb == 0xD5)
+	    printf("Call to %#x\n", infos.regs.rbp);
+	  if (!rexb && rmb == 0xD6)
+	    printf("Call to %#x\n", infos.regs.rsi);	  
+	  if (!rexb && rmb == 0xD7)
+	    printf("Call to %#x\n", infos.regs.rdi);
+	}
+      printf("Call FF/2 : %#x\n", word);
+    }
+  return (0);
 }
 
 static void	trace_process(int pid, sym_strtab const* symlist)
