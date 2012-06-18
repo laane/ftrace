@@ -139,7 +139,10 @@ static int	get_call(int pid, sym_strtab const* symlist)
 	  if (!rexb && rmb == 0x14)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsp);
 	  if (!rexb && rmb == 0x15)
-	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbp);
+	    {
+	      unsigned long addb = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip + 2) & 0xFFFFFFFF;
+	      addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip + 6 + addb);
+	    }
 	  if (!rexb && rmb == 0x16)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsi);
 	  if (!rexb && rmb == 0x17)
