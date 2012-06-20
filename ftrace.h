@@ -21,6 +21,7 @@ struct		sym_strtab
 {
   unsigned long	addr;
   char		name[MAX_NAME_LEN];
+  size_t	symtabndx;
   sym_strtab	*next;
 };
 
