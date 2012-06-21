@@ -53,9 +53,8 @@ static void		add_symbol(sym_strtab **list, size_t value,
   elem->addr = value;
   if (name)
     strcpy(elem->name, name);
-  elem->symtabndx = index;
+  /* elem->symtabndx = index; */
   elem->calls = NULL;
-  printf("added : symbol N.%d : val = %x name = %s\n", index, value, name);
   elem->next = *list;
   *list = elem;
 }

@@ -4,21 +4,8 @@
 #include <sys/user.h>
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include "ftrace.h"
-
-static int	big_to_little_endian(int val)
-{
-  int		ret = 0;
-  unsigned char	*oct_val = (unsigned char*)&val;
-  unsigned char	*oct_ret = (unsigned char*)&ret;
-
-  oct_ret[0] = oct_val[3];
-  oct_ret[1] = oct_val[2];
-  oct_ret[2] = oct_val[1];
-  oct_ret[3] = oct_val[0];
-
-  return ret;
-}
 
 static int	get_stopsig(int pid)
 {
@@ -206,6 +193,7 @@ static int	get_call(int pid, sym_strtab * symlist, sym_strtab *node)
   char		rexx = 0;
   char		rexb = 0;
   sym_strtab * symlist_bak = symlist;
+
   if (ptrace(PTRACE_GETREGS, pid, NULL, &infos) == -1)
     {      fprintf(stderr, "getregs fail\n");      return 1;    }
   word = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip);
@@ -213,6 +201,7 @@ static int	get_call(int pid, sym_strtab * symlist, sym_strtab *node)
     {
       rexw = word & 0x8;
       rexr = word & 0x4;
+      (void)rexr;
       rexx = word & 0x2;
       rexb = word & 0x1;
       word = ptrace(PTRACE_PEEKTEXT, pid, ++infos.regs.rip);
@@ -227,8 +216,8 @@ static int	get_call(int pid, sym_strtab * symlist, sym_strtab *node)
 	}
       else
 	{
-	  int val;
-	  val = offset & 0xFFFFFF;
+	  /* int val; */
+	  /* val = offset & 0xFFFFFF; */
 	  call_addr = infos.regs.rip + offset + 5;
 	}
       
@@ -239,7 +228,7 @@ static int	get_call(int pid, sym_strtab * symlist, sym_strtab *node)
 	      printf("Call to %s\n", symlist->name);
 	      addcall(symlist, node);
 	      ptrace(PTRACE_SINGLESTEP, pid, NULL, 0);
-	      trace_process(pid, symlist_bak, symlist);  
+	      trace_process(pid, symlist_bak, symlist);
 	      return (0);
 	    }
 	  symlist = symlist->next;
@@ -318,7 +307,7 @@ static int	get_call(int pid, sym_strtab * symlist, sym_strtab *node)
 	  else if (!rexb && rmb == 0x13)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbx);
 	  else if (rmb == 0x14)
-	      addr = ptrace(PTRACE_PEEKTEXT, pid, get_sib((word & 0xFF0000) >> 16, infos, rexb, rexx, 0, pid));
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, get_sib((word & 0xFF0000) >> 16, infos, rexb, rexx, 0, pid));
 	  else if (rmb == 0x15)
 	    {
 	      unsigned long addb = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip + 2) & 0xFFFFFFFF;

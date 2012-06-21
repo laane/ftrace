@@ -23,7 +23,7 @@ struct		sym_strtab
 {
   unsigned long	addr;
   char		name[MAX_NAME_LEN];
-  size_t	symtabndx;
+  /* size_t	symtabndx; */
   int		nb_called;
   calltree_info	*calls;
   sym_strtab	*next;
@@ -39,6 +39,8 @@ struct		calltree_info
 /*
 ** Prototypes
 */
+void	trace_process(int, sym_strtab *, sym_strtab *);
+
 void		exit_error(const char*);
 
 void		exec_child(char*, char **);
