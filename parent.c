@@ -26,7 +26,7 @@ static int	get_stopsig(int pid)
 
   sig.si_signo = 0;
   if (-1 == ptrace(PTRACE_GETSIGINFO, pid, NULL, &sig))
-    return fprintf(stderr, "getsiginfo fail\n");
+    return fprintf(stderr, "Process died\n");
   switch (sig.si_signo) {
   case 0:
   case 5:
@@ -113,7 +113,6 @@ static unsigned long	get_sib(unsigned char sib, struct user infos, char rexb, ch
       break;
     case 3:
       result *= 8;
-      printf("*8\n");
       break;
     }
   switch (base)
@@ -175,7 +174,29 @@ static unsigned long	get_sib(unsigned char sib, struct user infos, char rexb, ch
   return (result);
 }
 
-static int	get_call(int pid, sym_strtab const* symlist)
+static void	addcall(sym_strtab * symlist, sym_strtab *node)
+{
+  calltree_info	*tmp = node->calls;
+  
+  while (tmp)
+    {
+      if (tmp->data == symlist)
+	{
+	  tmp->nb_called++;
+	  symlist->nb_called++;
+	  return ;
+	}
+      tmp = tmp->next;
+    }
+  tmp = malloc(sizeof(calltree_info));
+  tmp->nb_called = 1;
+  tmp->data = symlist;
+  tmp->next = node->calls;
+  node->calls = tmp;
+  symlist->nb_called++;
+}
+
+static int	get_call(int pid, sym_strtab * symlist, sym_strtab *node)
 {
   struct user	infos;
   unsigned long	word, call_addr;
@@ -184,7 +205,7 @@ static int	get_call(int pid, sym_strtab const* symlist)
   char		rexr = 0;
   char		rexx = 0;
   char		rexb = 0;
-
+  sym_strtab * symlist_bak = symlist;
   if (ptrace(PTRACE_GETREGS, pid, NULL, &infos) == -1)
     {      fprintf(stderr, "getregs fail\n");      return 1;    }
   word = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip);
@@ -210,19 +231,28 @@ static int	get_call(int pid, sym_strtab const* symlist)
 	  val = offset & 0xFFFFFF;
 	  call_addr = infos.regs.rip + offset + 5;
 	}
+      
       while (symlist)
 	{
 	  if (symlist->addr == call_addr)
 	    {
 	      printf("Call to %s\n", symlist->name);
+	      addcall(symlist, node);
+	      ptrace(PTRACE_SINGLESTEP, pid, NULL, 0);
+	      trace_process(pid, symlist_bak, symlist);  
 	      return (0);
 	    }
 	  symlist = symlist->next;
 	}
     }
-  else if ((word & 0xFF) == 0xFF && (word & 0x3800) == 0x1800)
+  else if ((word & 0xFF) == 0xC2 || (word & 0xFF) == 0xC3 || (word & 0xFF) == 0xCA || (word & 0xFF) == 0xCB)
     {
-      printf("Call FF/3 : %#x\n", word);
+      if (strcmp("<start>", node->name))
+	{
+	  printf("Returning\n");
+	  return (-1);
+	}
+      return (0);
     }
   else if ((word & 0xFF) == 0xFF && (word & 0x3800) == 0x1000)
     {
@@ -234,78 +264,81 @@ static int	get_call(int pid, sym_strtab const* symlist)
 	{
 	  if (!rexb && rmb == 0xD0)
 	    addr = infos.regs.rax;
-	  if (!rexb && rmb == 0xD1)
+	  else if (!rexb && rmb == 0xD1)
 	    addr = infos.regs.rcx;
-	  if (!rexb && rmb == 0xD2)
+	  else if (!rexb && rmb == 0xD2)
 	    addr = infos.regs.rdx;
-	  if (!rexb && rmb == 0xD3)
+	  else if (!rexb && rmb == 0xD3)
 	    addr = infos.regs.rbx;
-	  if (!rexb && rmb == 0xD4)
+	  else if (!rexb && rmb == 0xD4)
 	    addr = infos.regs.rsp;
-	  if (!rexb && rmb == 0xD5)
+	  else if (!rexb && rmb == 0xD5)
 	    addr = infos.regs.rbp;
-	  if (!rexb && rmb == 0xD6)
+	  else if (!rexb && rmb == 0xD6)
 	    addr = infos.regs.rsi;
-	  if (!rexb && rmb == 0xD7)
+	  else if (!rexb && rmb == 0xD7)
 	    addr = infos.regs.rdi;
-	  if (rexb && rmb == 0xD0)
+	  else if (rexb && rmb == 0xD0)
 	    addr = infos.regs.r8;
-	  if (rexb && rmb == 0xD1)
+	  else if (rexb && rmb == 0xD1)
 	    addr = infos.regs.r9;
-	  if (rexb && rmb == 0xD2)
+	  else if (rexb && rmb == 0xD2)
 	    addr = infos.regs.r10;
-	  if (rexb && rmb == 0xD3)
+	  else if (rexb && rmb == 0xD3)
 	    addr = infos.regs.r11;
-	  if (rexb && rmb == 0xD4)
+	  else if (rexb && rmb == 0xD4)
 	    addr = infos.regs.r12;
-	  if (rexb && rmb == 0xD5)
+	  else if (rexb && rmb == 0xD5)
 	    addr = infos.regs.r13;
-	  if (rexb && rmb == 0xD6)
+	  else if (rexb && rmb == 0xD6)
 	    addr = infos.regs.r14;
-	  if (rexb && rmb == 0xD7)
+	  else if (rexb && rmb == 0xD7)
 	    addr = infos.regs.r15;
 	  while (symlist)
 	    {
 	      if (symlist->addr == addr)
 		{
 		  printf("(ff/2 mod3)Call to %s\n", symlist->name);
+		  addcall(symlist, node);
+		  ptrace(PTRACE_SINGLESTEP, pid, NULL, 0);
+		  trace_process(pid, symlist_bak, node);
 		  return (0);
 		}
 	      symlist = symlist->next;
 	    }
 	}
-      if (rmb >= 0x10 && rmb <= 0x17)
+      else if (rmb >= 0x10 && rmb <= 0x17)
 	{
 	  if (!rexb && rmb == 0x10)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rax);
-	  if (!rexb && rmb == 0x11)
+	  else if (!rexb && rmb == 0x11)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rcx);
-	  if (!rexb && rmb == 0x12)
+	  else if (!rexb && rmb == 0x12)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdx);
-	  if (!rexb && rmb == 0x13)
+	  else if (!rexb && rmb == 0x13)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbx);
-	  if (rmb == 0x14)
+	  else if (rmb == 0x14)
 	      addr = ptrace(PTRACE_PEEKTEXT, pid, get_sib((word & 0xFF0000) >> 16, infos, rexb, rexx, 0, pid));
-	  if (rmb == 0x15)
+	  else if (rmb == 0x15)
 	    {
 	      unsigned long addb = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip + 2) & 0xFFFFFFFF;
 	      addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip + 6 + addb);
 	    }
-	  if (!rexb && rmb == 0x16)
+	  else if (!rexb && rmb == 0x16)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsi);
-	  if (!rexb && rmb == 0x17)
+	  else if (!rexb && rmb == 0x17)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdi);
-	  if (rexb && rmb == 0x10)
+	  else if (rexb && rmb == 0x10)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r8);
-	  if (rexb && rmb == 0x11)
+	  else if (rexb && rmb == 0x11)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r9);
-	  if (rexb && rmb == 0x12)
+	  else if (rexb && rmb == 0x12)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r10);
-	  if (rexb && rmb == 0x13)
+	  else if (rexb && rmb == 0x13)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r11);
-	  if (rexb && rmb == 0x16)
+	  else if (rexb && rmb == 0x16)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r14);
-	  if (rexb && rmb == 0x17)
+	  else if (rexb && rmb == 0x17)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r15);
 	  printf("(ff/2 mod0)Call to %#lx\n", addr);
 	  while (symlist)
@@ -313,93 +346,102 @@ static int	get_call(int pid, sym_strtab const* symlist)
 	      if (symlist->addr == addr)
 		{
 		  printf("(ff/2 mod0)Call to %s\n", symlist->name);
+		  addcall(symlist, node);
+		  ptrace(PTRACE_SINGLESTEP, pid, NULL, 0);
+		  trace_process(pid, symlist_bak, node);
 		  return (0);
 		}
 	      symlist = symlist->next;
 	    }
 	}
-      if (rmb >= 0x50 && rmb <= 0x57)
+      else if (rmb >= 0x50 && rmb <= 0x57)
 	{
 	  char	addb;
 	  addb = (word & 0xFF0000) >> 16;
 	  if (!rexb && rmb == 0x50)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rax + addb);
-	  if (!rexb && rmb == 0x51)
+	  else if (!rexb && rmb == 0x51)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rcx + addb);
-	  if (!rexb && rmb == 0x52)
+	  else if (!rexb && rmb == 0x52)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdx + addb);
-	  if (!rexb && rmb == 0x53)
+	  else if (!rexb && rmb == 0x53)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbx + addb);
-	  if (rmb == 0x54)
+	  else if (rmb == 0x54)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, get_sib((word & 0xFF0000) >> 16, infos, rexb, rexx, 1, pid) + addb);
-	  if (!rexb && rmb == 0x55)
+	  else if (!rexb && rmb == 0x55)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbp + addb);
-	  if (!rexb && rmb == 0x56)
+	  else if (!rexb && rmb == 0x56)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsi + addb);
-	  if (!rexb && rmb == 0x57)
+	  else if (!rexb && rmb == 0x57)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdi + addb);
-	  if (rexb && rmb == 0x50)
+	  else if (rexb && rmb == 0x50)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r8 + addb);
-	  if (rexb && rmb == 0x51)
+	  else if (rexb && rmb == 0x51)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r9 + addb);
-	  if (rexb && rmb == 0x52)
+	  else if (rexb && rmb == 0x52)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r10 + addb);
-	  if (rexb && rmb == 0x53)
+	  else if (rexb && rmb == 0x53)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r11 + addb);
-	  if (rexb && rmb == 0x55)
+	  else if (rexb && rmb == 0x55)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r13 + addb);
-	  if (rexb && rmb == 0x56)
+	  else if (rexb && rmb == 0x56)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r14 + addb);
-	  if (rexb && rmb == 0x57)
+	  else if (rexb && rmb == 0x57)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r15 + addb);
 	  while (symlist)
 	    {
 	      if (symlist->addr == addr)
 		{
 		  printf("(ff/2 mod1)Call to %s\n", symlist->name);
+		  addcall(symlist, node);
+		  ptrace(PTRACE_SINGLESTEP, pid, NULL, 0);
+		  trace_process(pid, symlist_bak, node);
 		  return (0);
 		}
 	      symlist = symlist->next;
 	    }
 	}
-      if (rmb >= 0x90 && rmb <= 0x97)
+      else if (rmb >= 0x90 && rmb <= 0x97)
 	{
 	  unsigned long addb = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip + 2) & 0xFFFFFFFF;
 	  if (!rexb && rmb == 0x90)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rax + addb);
-	  if (!rexb && rmb == 0x91)
+	  else if (!rexb && rmb == 0x91)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rcx + addb);
-	  if (!rexb && rmb == 0x92)
+	  else if (!rexb && rmb == 0x92)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdx + addb);
-	  if (!rexb && rmb == 0x93)
+	  else if (!rexb && rmb == 0x93)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbx + addb);
-	  if (rmb == 0x94)
+	  else if (rmb == 0x94)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, get_sib((word & 0xFF0000) >> 16, infos, rexb, rexx, 2, pid) + addb);
-	  if (!rexb && rmb == 0x95)
+	  else if (!rexb && rmb == 0x95)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbp + addb);
-	  if (!rexb && rmb == 0x96)
+	  else if (!rexb && rmb == 0x96)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsi + addb);
-	  if (!rexb && rmb == 0x97)
+	  else if (!rexb && rmb == 0x97)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdi + addb);
-	  if (rexb && rmb == 0x90)
+	  else if (rexb && rmb == 0x90)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r8 + addb);
-	  if (rexb && rmb == 0x91)
+	  else if (rexb && rmb == 0x91)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r9 + addb);
-	  if (rexb && rmb == 0x92)
+	  else if (rexb && rmb == 0x92)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r10 + addb);
-	  if (rexb && rmb == 0x93)
+	  else if (rexb && rmb == 0x93)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r11 + addb);
-	  if (rexb && rmb == 0x95)
+	  else if (rexb && rmb == 0x95)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r13 + addb);
-	  if (rexb && rmb == 0x96)
+	  else if (rexb && rmb == 0x96)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r14 + addb);
-	  if (rexb && rmb == 0x97)
+	  else if (rexb && rmb == 0x97)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r15 + addb);
 	  while (symlist)
 	    {
 	      if (symlist->addr == addr)
 		{
 		  printf("(ff/2 mod2)Call to %s\n", symlist->name);
+		  addcall(symlist, node);
+		  ptrace(PTRACE_SINGLESTEP, pid, NULL, 0);		  
+		  trace_process(pid, symlist_bak, node);
 		  return (0);
 		}
 	      symlist = symlist->next;
@@ -409,7 +451,7 @@ static int	get_call(int pid, sym_strtab const* symlist)
   return (0);
 }
 
-static void	trace_process(int pid, sym_strtab const* symlist)
+void	trace_process(int pid, sym_strtab * symlist, sym_strtab *node)
 {
   int		status;
 
@@ -419,20 +461,41 @@ static void	trace_process(int pid, sym_strtab const* symlist)
 	{ fprintf(stderr, "wait4 fail\n"); break; }
       if (get_stopsig(pid) || !status)
       	break;
-      if (get_call(pid, symlist))
-      	break;
+      if (get_call(pid, symlist, node))
+	{
+	  break;
+	}
       if (ptrace(PTRACE_SINGLESTEP, pid, NULL, 0) == -1)
 	break;
     }
 }
 
-void		exec_parent(int pid, sym_strtab const* symlist, char flag)
+void		print_node(sym_strtab *node)
 {
+  printf("Node %s, called %d times, called : \n<\n", node->name, node->nb_called);
+  calltree_info *ptr = node->calls;
+  while (ptr)
+    {
+      printf("%d times : \n", ptr->nb_called);
+      print_node(ptr->data);
+      ptr = ptr->next;
+    }
+  printf("\n>\n");
+}
+
+void		exec_parent(int pid, sym_strtab * symlist, char flag)
+{
+  sym_strtab	*parent = malloc(sizeof(sym_strtab));
+
+  strcpy(parent->name, "<start>");
+  parent->nb_called = 1;
+  parent->calls = NULL;
   if (ptrace(PTRACE_ATTACH, pid, NULL, 0) == -1)
     {
       if (flag)
 	kill(pid, SIGKILL);
       exit_error("Cannot attach parent process");
     }
-  trace_process(pid, symlist);
+  trace_process(pid, symlist, parent);
+  print_node(parent);
 }

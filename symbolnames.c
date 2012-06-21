@@ -51,6 +51,7 @@ static void		add_symbol(sym_strtab **list, Elf64_Sym *sym,
     strcpy(elem->name, name);
   elem->symtabndx = index;
   printf("added : symbol N.%d : %s\n", index, name);
+  elem->calls = NULL;
   elem->next = *list;
   *list = elem;
 }
@@ -106,7 +107,7 @@ static void	resolve_relocations(sym_strtab *list)
 	     ELF64_R_TYPE(relatab[i].r_info),
 	     ELF64_R_SYM(relatab[i].r_info));
     }
-  exit_error("boap");
+  /*  exit_error("boap");*/
 }
 
 sym_strtab	*get_sym_strtab(char const* bin)

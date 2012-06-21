@@ -33,6 +33,7 @@ struct		calltree_info
 {
   int		nb_called;
   sym_strtab	*data;
+  calltree_info	*next;
 };
 
 /*
@@ -41,7 +42,7 @@ struct		calltree_info
 void		exit_error(const char*);
 
 void		exec_child(char*, char **);
-void		exec_parent(int, sym_strtab const*, char);
+void		exec_parent(int, sym_strtab*, char);
 void		print_args(const char*, char **, struct user, int);
 void		int_enum(int, const char*, int);
 sym_strtab	*get_sym_strtab(char const*);
