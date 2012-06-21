@@ -17,31 +17,22 @@
 # define MAX_NAME_LEN	512
 
 typedef struct sym_strtab	sym_strtab;
+typedef struct	calltree_info	calltree_info;
+
 struct		sym_strtab
 {
   unsigned long	addr;
   char		name[MAX_NAME_LEN];
   size_t	symtabndx;
+  int		nb_called;
+  calltree_info	*calls;
   sym_strtab	*next;
 };
-
-
-typedef struct	calltree_info	calltree_info;
-typedef struct	calltree	calltree;
 
 struct		calltree_info
 {
   int		nb_called;
-  calltree	*data;
-};
-
-
-struct		calltree
-{
-  int		nb_called;
-  int		total_called;
-  char		*name;
-  calltree_info	*children;
+  sym_strtab	*data;
 };
 
 /*

@@ -248,6 +248,22 @@ static int	get_call(int pid, sym_strtab const* symlist)
 	    addr = infos.regs.rsi;
 	  if (!rexb && rmb == 0xD7)
 	    addr = infos.regs.rdi;
+	  if (rexb && rmb == 0xD0)
+	    addr = infos.regs.r8;
+	  if (rexb && rmb == 0xD1)
+	    addr = infos.regs.r9;
+	  if (rexb && rmb == 0xD2)
+	    addr = infos.regs.r10;
+	  if (rexb && rmb == 0xD3)
+	    addr = infos.regs.r11;
+	  if (rexb && rmb == 0xD4)
+	    addr = infos.regs.r12;
+	  if (rexb && rmb == 0xD5)
+	    addr = infos.regs.r13;
+	  if (rexb && rmb == 0xD6)
+	    addr = infos.regs.r14;
+	  if (rexb && rmb == 0xD7)
+	    addr = infos.regs.r15;
 	  while (symlist)
 	    {
 	      if (symlist->addr == addr)
@@ -268,9 +284,9 @@ static int	get_call(int pid, sym_strtab const* symlist)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdx);
 	  if (!rexb && rmb == 0x13)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbx);
-	  if (!rexb && rmb == 0x14)
+	  if (rmb == 0x14)
 	      addr = ptrace(PTRACE_PEEKTEXT, pid, get_sib((word & 0xFF0000) >> 16, infos, rexb, rexx, 0, pid));
-	  if (!rexb && rmb == 0x15)
+	  if (rmb == 0x15)
 	    {
 	      unsigned long addb = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip + 2) & 0xFFFFFFFF;
 	      addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip + 6 + addb);
@@ -279,6 +295,18 @@ static int	get_call(int pid, sym_strtab const* symlist)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsi);
 	  if (!rexb && rmb == 0x17)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdi);
+	  if (rexb && rmb == 0x10)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r8);
+	  if (rexb && rmb == 0x11)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r9);
+	  if (rexb && rmb == 0x12)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r10);
+	  if (rexb && rmb == 0x13)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r11);
+	  if (rexb && rmb == 0x16)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r14);
+	  if (rexb && rmb == 0x17)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r15);
 	  printf("(ff/2 mod0)Call to %#lx\n", addr);
 	  while (symlist)
 	    {
@@ -302,7 +330,7 @@ static int	get_call(int pid, sym_strtab const* symlist)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdx + addb);
 	  if (!rexb && rmb == 0x53)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbx + addb);
-	  if (!rexb && rmb == 0x54)
+	  if (rmb == 0x54)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, get_sib((word & 0xFF0000) >> 16, infos, rexb, rexx, 1, pid) + addb);
 	  if (!rexb && rmb == 0x55)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbp + addb);
@@ -310,6 +338,20 @@ static int	get_call(int pid, sym_strtab const* symlist)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsi + addb);
 	  if (!rexb && rmb == 0x57)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdi + addb);
+	  if (rexb && rmb == 0x50)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r8 + addb);
+	  if (rexb && rmb == 0x51)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r9 + addb);
+	  if (rexb && rmb == 0x52)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r10 + addb);
+	  if (rexb && rmb == 0x53)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r11 + addb);
+	  if (rexb && rmb == 0x55)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r13 + addb);
+	  if (rexb && rmb == 0x56)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r14 + addb);
+	  if (rexb && rmb == 0x57)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r15 + addb);
 	  while (symlist)
 	    {
 	      if (symlist->addr == addr)
@@ -331,7 +373,7 @@ static int	get_call(int pid, sym_strtab const* symlist)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdx + addb);
 	  if (!rexb && rmb == 0x93)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbx + addb);
-	  if (!rexb && rmb == 0x94)
+	  if (rmb == 0x94)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, get_sib((word & 0xFF0000) >> 16, infos, rexb, rexx, 2, pid) + addb);
 	  if (!rexb && rmb == 0x95)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbp + addb);
@@ -339,6 +381,20 @@ static int	get_call(int pid, sym_strtab const* symlist)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsi + addb);
 	  if (!rexb && rmb == 0x97)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdi + addb);
+	  if (rexb && rmb == 0x90)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r8 + addb);
+	  if (rexb && rmb == 0x91)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r9 + addb);
+	  if (rexb && rmb == 0x92)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r10 + addb);
+	  if (rexb && rmb == 0x93)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r11 + addb);
+	  if (rexb && rmb == 0x95)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r13 + addb);
+	  if (rexb && rmb == 0x96)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r14 + addb);
+	  if (rexb && rmb == 0x97)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r15 + addb);
 	  while (symlist)
 	    {
 	      if (symlist->addr == addr)
