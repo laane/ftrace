@@ -5,7 +5,11 @@
 #include <string.h>
 #include "ftrace.h"
 
-static Elf	*e;
+static Elf		*e = NULL;
+static Elf64_Sym	*symtab = NULL;
+static Elf64_Shdr	*sym_shdr = NULL;
+static Elf64_Sym	*dynsym_tab = NULL;
+static char		*dynsym_strtab = NULL;
 
 static void	init_libelf(int *fd, char const* bin)
 {
@@ -37,21 +41,21 @@ static Elf_Scn	*get_sym_shdr(void)
   return scn;
 }
 
-static void		add_symbol(sym_strtab **list, Elf64_Sym *sym,
-				   char const* name,
-				   __attribute__((unused))Elf64_Shdr* section,
-				   int index)
+static void		add_symbol(sym_strtab **list, size_t value,
+				   char const* name)
 {
   sym_strtab		*elem;
 
+  if (value == 0)
+    return ;
   if ((elem = malloc(sizeof(*elem))) == NULL)
     return ;
-  elem->addr = sym->st_value;
+  elem->addr = value;
   if (name)
     strcpy(elem->name, name);
   elem->symtabndx = index;
-  printf("added : symbol N.%d : %s\n", index, name);
   elem->calls = NULL;
+  printf("added : symbol N.%d : val = %x name = %s\n", index, value, name);
   elem->next = *list;
   *list = elem;
 }
@@ -59,8 +63,6 @@ static void		add_symbol(sym_strtab **list, Elf64_Sym *sym,
 static void	load_symtab(sym_strtab **list, Elf_Scn *sym_scn)
 {
   Elf_Data	*data;
-  Elf64_Shdr	*sym_shdr;
-  Elf64_Sym	*symtab;
   size_t	nb_symbols;
 
   sym_shdr = elf64_getshdr(sym_scn);
@@ -72,29 +74,15 @@ static void	load_symtab(sym_strtab **list, Elf_Scn *sym_scn)
   for (size_t i = 0; i < nb_symbols; ++i)
     if (ELF64_ST_TYPE(symtab[i].st_info) == STT_FUNC
 	|| ELF64_ST_TYPE(symtab[i].st_info) == STT_NOTYPE)
-      add_symbol(list, &symtab[i],
-		 elf_strptr(e, sym_shdr->sh_link, symtab[i].st_name),
-		 sym_shdr, i);
+      add_symbol(list, symtab[i].st_value,
+		 elf_strptr(e, sym_shdr->sh_link, symtab[i].st_name));
 }
 
-static void	resolve_relocations(sym_strtab *list)
+static void	reloc_treatment(Elf_Scn *scn, Elf64_Shdr *shdr, sym_strtab **list)
 {
   Elf_Data	*data;
-  Elf_Scn	*scn;
-  Elf64_Shdr	*shdr;
   Elf64_Rela	*relatab;
   size_t	len;
-
-  scn = NULL;
-  while ((scn = elf_nextscn(e, scn)))
-    {
-      if ((shdr = elf64_getshdr(scn)) == NULL)
-      	exit_error("gelf_getshdr() fail");
-      if (shdr->sh_type == SHT_RELA)
-	break;
-    }
-  if (!scn)
-    exit_error("relocation tab not found omg");
 
   data = elf_getdata(scn, NULL);
   len = shdr->sh_size / shdr->sh_entsize;
@@ -102,10 +90,45 @@ static void	resolve_relocations(sym_strtab *list)
 
   for (size_t i = 0; i < len; ++i)
     {
-      /* if (ELF64_R_TYPE(relatab[i].r_info) == R_386_JMP_SLOT) */
-      printf("NARDIN type = %d pour le symbol %d\n",
-	     ELF64_R_TYPE(relatab[i].r_info),
-	     ELF64_R_SYM(relatab[i].r_info));
+      if (ELF64_R_TYPE(relatab[i].r_info) == R_386_JMP_SLOT
+	  && ELF64_R_SYM(relatab[i].r_info) != STN_UNDEF)
+	add_symbol(list, relatab[i].r_offset,
+		   &dynsym_strtab[dynsym_tab[ELF64_R_SYM(relatab[i].r_info)].st_name]);
+    }
+}
+
+static void	resolve_relocations(sym_strtab **list)
+{
+  Elf_Scn	*scn;
+  Elf64_Shdr	*shdr;
+
+  scn = NULL;
+  while ((scn = elf_nextscn(e, scn)))
+    {
+      if ((shdr = elf64_getshdr(scn)) == NULL)
+      	exit_error("gelf_getshdr() fail");
+      if (shdr->sh_type == SHT_DYNSYM)
+	{
+	  Elf_Data	*data;
+	  data = elf_getdata(scn, NULL);
+	  dynsym_tab = (Elf64_Sym*)data->d_buf;
+	}
+      if (shdr->sh_type == SHT_STRTAB && shdr->sh_flags == SHF_ALLOC)
+	{
+	  Elf_Data	*data;
+	  data = elf_getdata(scn, NULL);
+	  dynsym_strtab = (char*)data->d_buf;
+	}
+    }
+  if (!dynsym_tab)
+    return;
+  scn = NULL;
+  while ((scn = elf_nextscn(e, scn)))
+    {
+      if ((shdr = elf64_getshdr(scn)) == NULL)
+      	exit_error("gelf_getshdr() fail");
+      if (shdr->sh_type == SHT_RELA)
+	reloc_treatment(scn, shdr, list);
     }
   /*  exit_error("boap");*/
 }
@@ -119,7 +142,7 @@ sym_strtab	*get_sym_strtab(char const* bin)
   init_libelf(&fd, bin);
   sym_scn = get_sym_shdr();
   load_symtab(&list, sym_scn);
-  resolve_relocations(list);
+  resolve_relocations(&list);
   elf_end(e);
   close(fd);
   return list;
