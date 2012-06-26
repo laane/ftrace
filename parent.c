@@ -203,7 +203,6 @@ static int	call_relative(unsigned long word, int pid, struct user infos,
       /* val = offset & 0xFFFFFF; */
       call_addr = infos.regs.rip + offset + 5;
     }
-
   while (symlist)
     {
       if (symlist->addr == call_addr)
@@ -298,37 +297,37 @@ static int	call_rm(unsigned long word, int pid, struct user infos,
 	addr = ptrace(PTRACE_PEEKTEXT, pid, get_sib((word & 0xFF0000) >> 16, infos, rex, 0, pid));
       else if (rmb == 0x15)
 	{
-	  if (!rexb && rmb == 0xD0)
+	  if (!rex.b && rmb == 0xD0)
 	    addr = infos.regs.rax;
-	  else if (!rexb && rmb == 0xD1)
+	  else if (!rex.b && rmb == 0xD1)
 	    addr = infos.regs.rcx;
-	  else if (!rexb && rmb == 0xD2)
+	  else if (!rex.b && rmb == 0xD2)
 	    addr = infos.regs.rdx;
-	  else if (!rexb && rmb == 0xD3)
+	  else if (!rex.b && rmb == 0xD3)
 	    addr = infos.regs.rbx;
-	  else if (!rexb && rmb == 0xD4)
+	  else if (!rex.b && rmb == 0xD4)
 	    addr = infos.regs.rsp;
-	  else if (!rexb && rmb == 0xD5)
+	  else if (!rex.b && rmb == 0xD5)
 	    addr = infos.regs.rbp;
-	  else if (!rexb && rmb == 0xD6)
+	  else if (!rex.b && rmb == 0xD6)
 	    addr = infos.regs.rsi;
-	  else if (!rexb && rmb == 0xD7)
+	  else if (!rex.b && rmb == 0xD7)
 	    addr = infos.regs.rdi;
-	  else if (rexb && rmb == 0xD0)
+	  else if (rex.b && rmb == 0xD0)
 	    addr = infos.regs.r8;
-	  else if (rexb && rmb == 0xD1)
+	  else if (rex.b && rmb == 0xD1)
 	    addr = infos.regs.r9;
-	  else if (rexb && rmb == 0xD2)
+	  else if (rex.b && rmb == 0xD2)
 	    addr = infos.regs.r10;
-	  else if (rexb && rmb == 0xD3)
+	  else if (rex.b && rmb == 0xD3)
 	    addr = infos.regs.r11;
-	  else if (rexb && rmb == 0xD4)
+	  else if (rex.b && rmb == 0xD4)
 	    addr = infos.regs.r12;
-	  else if (rexb && rmb == 0xD5)
+	  else if (rex.b && rmb == 0xD5)
 	    addr = infos.regs.r13;
-	  else if (rexb && rmb == 0xD6)
+	  else if (rex.b && rmb == 0xD6)
 	    addr = infos.regs.r14;
-	  else if (rexb && rmb == 0xD7)
+	  else if (rex.b && rmb == 0xD7)
 	    addr = infos.regs.r15;
 	  printf("Call to %#lx\n", addr);
 	  while (symlist)
@@ -415,47 +414,49 @@ static int	call_rm(unsigned long word, int pid, struct user infos,
 	{
 	  char	addb;
 	  addb = (word & 0xFF0000) >> 16;
-	  if (!rexb && rmb == 0x50)
+	  if (!rex.b && rmb == 0x50)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rax + addb);
-	  else if (!rexb && rmb == 0x51)
+	  else if (!rex.b && rmb == 0x51)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rcx + addb);
-	  else if (!rexb && rmb == 0x52)
+	  else if (!rex.b && rmb == 0x52)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdx + addb);
-	  else if (!rexb && rmb == 0x53)
+	  else if (!rex.b && rmb == 0x53)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbx + addb);
 	  else if (rmb == 0x54)
-	    addr = ptrace(PTRACE_PEEKTEXT, pid, get_sib((word & 0xFF0000) >> 16, infos, rexb, rexx, 1, pid) + addb);
-	  else if (!rexb && rmb == 0x55)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, get_sib((word & 0xFF0000) >> 16, infos, rex, 1, pid) + addb);
+	  else if (!rex.b && rmb == 0x55)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbp + addb);
-	  else if (!rexb && rmb == 0x56)
+	  else if (!rex.b && rmb == 0x56)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsi + addb);
-	  else if (!rexb && rmb == 0x57)
+	  else if (!rex.b && rmb == 0x57)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdi + addb);
-	  else if (rexb && rmb == 0x50)
+	  else if (rex.b && rmb == 0x50)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r8 + addb);
-	  else if (rexb && rmb == 0x51)
+	  else if (rex.b && rmb == 0x51)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r9 + addb);
-	  else if (rexb && rmb == 0x52)
+	  else if (rex.b && rmb == 0x52)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r10 + addb);
-	  else if (rexb && rmb == 0x53)
+	  else if (rex.b && rmb == 0x53)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r11 + addb);
-	  else if (rexb && rmb == 0x55)
+	  else if (rex.b && rmb == 0x55)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r13 + addb);
-	  else if (rexb && rmb == 0x56)
+	  else if (rex.b && rmb == 0x56)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r14 + addb);
-	  else if (rexb && rmb == 0x57)
+	  else if (rex.b && rmb == 0x57)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r15 + addb);
 	  printf("Call to %#lx\n", addr);
 	  while (symlist)
-	    if (symlist->addr == addr)
-	      {
-		printf("(ff/2 mod1)Call to %s\n", symlist->name);
-		addcall(symlist, node);
-		ptrace(PTRACE_SINGLESTEP, pid, NULL, 0);
-		trace_process(pid, symlist_bak, node);
-		return (0);
-	      }
-	  symlist = symlist->next;
+	    {
+	      if (symlist->addr == addr)
+		{
+		  printf("(ff/2 mod1)Call to %s\n", symlist->name);
+		  addcall(symlist, node);
+		  ptrace(PTRACE_SINGLESTEP, pid, NULL, 0);
+		  trace_process(pid, symlist_bak, node);
+		  return (0);
+		}
+	      symlist = symlist->next;
+	    }
 	}
     }
   else if (rmb >= 0x90 && rmb <= 0x97)
@@ -494,47 +495,49 @@ static int	call_rm(unsigned long word, int pid, struct user infos,
       while (symlist)
 	{
 	  unsigned long addb = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip + 2) & 0xFFFFFFFF;
-	  if (!rexb && rmb == 0x90)
+	  if (!rex.b && rmb == 0x90)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rax + addb);
-	  else if (!rexb && rmb == 0x91)
+	  else if (!rex.b && rmb == 0x91)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rcx + addb);
-	  else if (!rexb && rmb == 0x92)
+	  else if (!rex.b && rmb == 0x92)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdx + addb);
-	  else if (!rexb && rmb == 0x93)
+	  else if (!rex.b && rmb == 0x93)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbx + addb);
 	  else if (rmb == 0x94)
-	    addr = ptrace(PTRACE_PEEKTEXT, pid, get_sib((word & 0xFF0000) >> 16, infos, rexb, rexx, 2, pid) + addb);
-	  else if (!rexb && rmb == 0x95)
+	    addr = ptrace(PTRACE_PEEKTEXT, pid, get_sib((word & 0xFF0000) >> 16, infos, rex, 2, pid) + addb);
+	  else if (!rex.b && rmb == 0x95)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rbp + addb);
-	  else if (!rexb && rmb == 0x96)
+	  else if (!rex.b && rmb == 0x96)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rsi + addb);
-	  else if (!rexb && rmb == 0x97)
+	  else if (!rex.b && rmb == 0x97)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rdi + addb);
-	  else if (rexb && rmb == 0x90)
+	  else if (rex.b && rmb == 0x90)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r8 + addb);
-	  else if (rexb && rmb == 0x91)
+	  else if (rex.b && rmb == 0x91)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r9 + addb);
-	  else if (rexb && rmb == 0x92)
+	  else if (rex.b && rmb == 0x92)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r10 + addb);
-	  else if (rexb && rmb == 0x93)
+	  else if (rex.b && rmb == 0x93)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r11 + addb);
-	  else if (rexb && rmb == 0x95)
+	  else if (rex.b && rmb == 0x95)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r13 + addb);
-	  else if (rexb && rmb == 0x96)
+	  else if (rex.b && rmb == 0x96)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r14 + addb);
-	  else if (rexb && rmb == 0x97)
+	  else if (rex.b && rmb == 0x97)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r15 + addb);
 	  printf("Call to %#lx\n", addr);
 	  while (symlist)
-	    if (symlist->addr == addr)
-	      {
-		printf("(ff/2 mod2)Call to %s\n", symlist->name);
-		addcall(symlist, node);
-		ptrace(PTRACE_SINGLESTEP, pid, NULL, 0);		  
-		trace_process(pid, symlist_bak, node);
-		return (0);
-	      }
-	  symlist = symlist->next;
+	    {
+	      if (symlist->addr == addr)
+		{
+		  printf("(ff/2 mod2)Call to %s\n", symlist->name);
+		  addcall(symlist, node);
+		  ptrace(PTRACE_SINGLESTEP, pid, NULL, 0);		  
+		  trace_process(pid, symlist_bak, node);
+		  return (0);
+		}
+	      symlist = symlist->next;
+	    }
 	}
     }
   return (0);

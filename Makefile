@@ -9,7 +9,7 @@ SRC=		main.c \
 
 OBJ=		$(SRC:.c=.o)
 
-CFLAGS+=	-W -Wall -ansi -pedantic $(DEFINES) -std=c99
+CFLAGS+=	-W -Wall -ansi -pedantic $(DEFINES) -std=c99 -g
 
 DEFINES=	-D_BSD_SOURCE -D_XOPEN_SOURCE -D_GNU_SOURCE
 
