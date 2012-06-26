@@ -216,11 +216,11 @@ static int	get_call(int pid, sym_strtab * symlist, sym_strtab *node)
 	}
       else
 	{
-	  /* int val; */
-	  /* val = offset & 0xFFFFFF; */
+	  int val;
+	  val = offset & 0xFFFFFF;
 	  call_addr = infos.regs.rip + offset + 5;
 	}
-      
+      printf("Call to %#lx\n", call_addr);
       while (symlist)
 	{
 	  if (symlist->addr == call_addr)
@@ -283,6 +283,7 @@ static int	get_call(int pid, sym_strtab * symlist, sym_strtab *node)
 	    addr = infos.regs.r14;
 	  else if (rexb && rmb == 0xD7)
 	    addr = infos.regs.r15;
+	  printf("Call to %#lx\n", addr);
 	  while (symlist)
 	    {
 	      if (symlist->addr == addr)
@@ -377,6 +378,7 @@ static int	get_call(int pid, sym_strtab * symlist, sym_strtab *node)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r14 + addb);
 	  else if (rexb && rmb == 0x57)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r15 + addb);
+	  printf("Call to %#lx\n", addr);
 	  while (symlist)
 	    {
 	      if (symlist->addr == addr)
@@ -423,6 +425,7 @@ static int	get_call(int pid, sym_strtab * symlist, sym_strtab *node)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r14 + addb);
 	  else if (rexb && rmb == 0x97)
 	    addr = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.r15 + addb);
+	  printf("Call to %#lx\n", addr);
 	  while (symlist)
 	    {
 	      if (symlist->addr == addr)
