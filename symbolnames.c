@@ -53,7 +53,6 @@ static void		add_symbol(sym_strtab **list, size_t value,
   elem->addr = value;
   if (name)
     strcpy(elem->name, name);
-  /* elem->symtabndx = index; */
   elem->calls = NULL;
   elem->next = *list;
   *list = elem;
@@ -129,7 +128,6 @@ static void	resolve_relocations(sym_strtab **list)
       if (shdr->sh_type == SHT_RELA)
 	reloc_treatment(scn, shdr, list);
     }
-  /*  exit_error("boap");*/
 }
 
 sym_strtab	*get_sym_strtab(char const* bin)

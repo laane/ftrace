@@ -23,7 +23,6 @@ struct		sym_strtab
 {
   unsigned long	addr;
   char		name[MAX_NAME_LEN];
-  /* size_t	symtabndx; */
   int		nb_called;
   calltree_info	*calls;
   sym_strtab	*next;
@@ -35,6 +34,14 @@ struct		calltree_info
   sym_strtab	*data;
   calltree_info	*next;
 };
+
+typedef struct	s_rex
+{
+  char w,
+    r,
+    x,
+    b;
+}		t_rex;
 
 /*
 ** Prototypes
