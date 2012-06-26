@@ -24,6 +24,7 @@ struct		sym_strtab
   unsigned long	addr;
   char		name[MAX_NAME_LEN];
   int		nb_called;
+  unsigned long	retaddr;
   calltree_info	*calls;
   sym_strtab	*next;
 };
