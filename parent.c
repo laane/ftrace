@@ -221,7 +221,7 @@ static int	call_relative(unsigned long word, int pid, struct user infos,
 
 static int	ret(sym_strtab *node)
 {
-  if (strcmp("<start>", node->name))
+  if (strcmp("_start_", node->name))
     {
       printf("Returning\n");
       return (-1);
@@ -507,33 +507,49 @@ void	trace_process(int pid, sym_strtab * symlist, sym_strtab *node)
     }
 }
 
+#include <fcntl.h>
+#include <unistd.h>
 void		print_node(sym_strtab *node, int lvl)
 {
-  for (int i = 0; i < lvl; ++i)
-    printf("   ");
-  printf("Node %s, called %d times, called : \n", node->name, node->nb_called);
-  for (int i = 0; i < lvl; ++i)
-    printf("   ");
-  printf("<\n");
+  static int		fd = -1;
+  char			s[12];
+
+  if (fd == -1)
+    {
+      fd = creat("woot.txt", 0644);
+      write(fd, "digraph G {\n", strlen("digraph G {\n"));
+    }
   calltree_info *ptr = node->calls;
+
   while (ptr)
     {
-      for (int i = 0; i < lvl; ++i)
-	printf("   ");
-      printf("%d times : \n", ptr->nb_called);
+      write(fd, "\"", 1);
+      write(fd, node->name, strlen(node->name));
+      bzero(s, 12);
+      sprintf(s, " (%d)\"", node->nb_called);
+      write(fd, s, strlen(s));
+      write(fd, " -> \"", 5);
+      write(fd, ptr->data->name, strlen(ptr->data->name));
+      bzero(s, 12);
+      sprintf(s, " (%d)\"", ptr->data->nb_called);
+      write(fd, s, strlen(s));
+      write(fd, " [label=\"", strlen(" [label=\""));
+      bzero(s, 12);
+      sprintf(s, "%d\"", ptr->nb_called);
+      write(fd, s, strlen(s));
+      write(fd, "]; ", 3);
       print_node(ptr->data, lvl+1);
       ptr = ptr->next;
     }
-  for (int i = 0; i < lvl; ++i)
-    printf("   ");
-  printf(">\n");
+  if (lvl == 0)
+    write(fd, "\n}\n", 3);
 }
 
 void		exec_parent(int pid, sym_strtab * symlist, char flag)
 {
   sym_strtab	*parent = malloc(sizeof(sym_strtab));
 
-  strcpy(parent->name, "<start>");
+  strcpy(parent->name, "_start_");
   parent->nb_called = 1;
   parent->retaddr = 0;
   parent->calls = NULL;
@@ -544,5 +560,5 @@ void		exec_parent(int pid, sym_strtab * symlist, char flag)
       exit_error("Cannot attach parent process");
     }
   trace_process(pid, symlist, parent);
-   print_node(parent, 0);
+  print_node(parent, 0);
 }
