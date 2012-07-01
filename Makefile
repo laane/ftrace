@@ -5,7 +5,8 @@ SRC=		main.c \
 		error.c \
 		child.c \
 		parent.c \
-		symbolnames.c
+		symbolnames.c \
+		syscalls.c
 
 OBJ=		$(SRC:.c=.o)
 

@@ -1,7 +1,8 @@
+#include <fcntl.h>
+#include <unistd.h>
 #include <string.h>
 #include <sys/ptrace.h>
 #include <sys/wait.h>
-#include <sys/user.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -453,6 +454,33 @@ static int	get_call(int pid, sym_strtab * symlist, sym_strtab *node)
     {      fprintf(stderr, "getregs fail\n");      return 1;    }
   word = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip);
   /*  printf("%#lx ?= %#lx\n", infos.regs.rip, node->retaddr); */
+  /* SYSCALLS */
+  if ((word & 0x0000FFFF) == 0x0000050f)
+    {
+      int st;
+      int rax;
+
+      fprintf(stderr, "BOAP syscall %s ", syscalls[infos.regs.rax]);
+      rax = infos.regs.rax;
+      st = 0;
+      ptrace(PTRACE_SINGLESTEP, pid, NULL, 0);
+      do
+	{
+	  wait4(pid, &st, 0, NULL);
+	  if (WIFEXITED(st) || WIFSIGNALED(st))
+	    {
+	      ptrace(PTRACE_DETACH, pid, NULL, NULL);
+	      return (0);
+	    }
+	}
+      while (!WIFSTOPPED(st));
+      ptrace(PTRACE_GETREGS, pid, NULL, &infos);
+      fprintf(stderr, "with return code %li\n", (long)infos.regs.rax);
+
+      if (get_syscall_by_name(symlist, syscalls[rax]))
+	addcall(get_syscall_by_name(symlist, syscalls[rax]),
+		node, infos.regs.rip);
+    }
   if (infos.regs.rip == node->retaddr)
     {
       printf("Returning From %s\n", node->name);
@@ -474,8 +502,8 @@ static int	get_call(int pid, sym_strtab * symlist, sym_strtab *node)
     return call_rm(word, pid, infos, rex, symlist, node, symlist);
   // RET
   /*  else if ((word & 0xFF) == 0xC2 || (word & 0xFF) == 0xC3 ||
-	   (word & 0xFF) == 0xCA || (word & 0xFF) == 0xCB)
-	   return ret(node);*/
+      (word & 0xFF) == 0xCA || (word & 0xFF) == 0xCB)
+      return ret(node);*/
 
   return (0);
 }
@@ -507,8 +535,6 @@ void	trace_process(int pid, sym_strtab * symlist, sym_strtab *node)
     }
 }
 
-#include <fcntl.h>
-#include <unistd.h>
 void		print_node(sym_strtab *node, int lvl)
 {
   static int		fd = -1;

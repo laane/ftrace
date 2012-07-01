@@ -1,7 +1,11 @@
 #ifndef FTRACE_H_
 # define FTRACE_H_
 
+#include <bits/types.h>
 #include <sys/user.h>
+
+extern	char	*syscalls[350];
+#define __SYSCALL(a, b) syscalls[a] = #b + 4;
 
 /*
 ** Defines
@@ -56,5 +60,6 @@ void		exec_parent(int, sym_strtab*, char);
 void		print_args(const char*, char **, struct user, int);
 void		int_enum(int, const char*, int);
 sym_strtab	*get_sym_strtab(char const*);
+sym_strtab	*get_syscall_by_name(sym_strtab *list, char *name);
 
 #endif /* !FTRACE_H_ */

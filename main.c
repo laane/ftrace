@@ -10,6 +10,7 @@
 #include <sys/ptrace.h>
 #include "ftrace.h"
 
+char		*syscalls[350];
 static int	gl_pid;
 
 static void	handler(int __attribute__((unused))sig)
@@ -105,16 +106,17 @@ static int	trace_pid(char **av)
 
 int		main(int ac, char **av)
 {
-    if (signal(SIGINT, &handler) == SIG_ERR)
+  set_syscalls();
+  if (signal(SIGINT, &handler) == SIG_ERR)
     {
-        fprintf(stderr, "Abort: signal failed\n");
-        return 1;
+      fprintf(stderr, "Abort: signal failed\n");
+      return 1;
     }
-    if (ac == 3 && !strcmp(av[1], "-p"))
-        trace_pid(av);
-    else if (ac != 1)
-        launch_program(av);
-    else
-        usage();
-    return 0;
+  if (ac == 3 && !strcmp(av[1], "-p"))
+    trace_pid(av);
+  else if (ac != 1)
+    launch_program(av);
+  else
+    usage();
+  return 0;
 }

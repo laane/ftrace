@@ -130,6 +130,17 @@ static void	resolve_relocations(sym_strtab **list)
     }
 }
 
+sym_strtab	*get_syscall_by_name(sym_strtab *list, char *name)
+{
+  while (list)
+    {
+      if (strcmp(list->name, name) == 0)
+	return list;
+      list = list->next;
+    }
+  return NULL;
+}
+
 sym_strtab	*get_sym_strtab(char const* bin)
 {
   Elf_Scn	*sym_scn;
