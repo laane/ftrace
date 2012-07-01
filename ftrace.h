@@ -62,5 +62,5 @@ void		print_args(const char*, char **, struct user, int);
 void		int_enum(int, const char*, int);
 sym_strtab	*get_sym_strtab(char const*);
 sym_strtab	*get_syscall_by_name(sym_strtab *list, char *name);
-
+int set_syscalls();
 #endif /* !FTRACE_H_ */
