@@ -75,12 +75,6 @@ static int	launch_program(char **av)
   if (!symlist)
     printf("Pas de symboles\n");
   olabackup = symlist;
-  while (symlist)
-    {
-      printf("name = %s\taddr = 0x%08x\n", symlist->name, (unsigned int)symlist->addr);
-      symlist = symlist->next;
-    }
-
   if ((gl_pid = fork()) == -1)
     exit_error("fork fail");
   if (!gl_pid) /* child */

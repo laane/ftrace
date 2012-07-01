@@ -5,6 +5,7 @@
 #include <string.h>
 #include "ftrace.h"
 
+static int		fd_bak;
 static Elf		*e = NULL;
 static Elf64_Sym	*symtab = NULL;
 static Elf64_Shdr	*sym_shdr = NULL;
@@ -21,6 +22,7 @@ static void	init_libelf(int *fd, char const* bin)
     exit_error("elf_begin() fail");
   if (elf_kind(e) != ELF_K_ELF)
     exit_error("file to execute is not an ELF file");
+  fd_bak = *fd;
 }
 
 static Elf_Scn	*get_sym_shdr(void)
@@ -55,6 +57,25 @@ static void		add_symbol(sym_strtab **list, size_t value,
     strcpy(elem->name, name);
   elem->calls = NULL;
   elem->next = *list;
+  elem->is_rel = 0;
+  *list = elem;
+}
+
+static void		add_symbol_rel(sym_strtab **list, size_t value,
+				   char const* name)
+{
+  sym_strtab		*elem;
+
+  if (value == 0)
+    return ;
+  if ((elem = malloc(sizeof(*elem))) == NULL)
+    return ;
+  elem->addr = value;
+  if (name)
+    strcpy(elem->name, name);
+  elem->calls = NULL;
+  elem->next = *list;
+  elem->is_rel = 1;
   *list = elem;
 }
 
@@ -90,8 +111,13 @@ static void	reloc_treatment(Elf_Scn *scn, Elf64_Shdr *shdr, sym_strtab **list)
     {
       if (ELF64_R_TYPE(relatab[i].r_info) == R_386_JMP_SLOT
 	  && ELF64_R_SYM(relatab[i].r_info) != STN_UNDEF)
-	add_symbol(list, relatab[i].r_offset,
+	{
+	  lseek(fd_bak, relatab[i].r_offset - 0x600000, SEEK_SET);
+	  long unsigned int toto;
+	  read(fd_bak, &toto, 8);
+	add_symbol_rel(list, toto,
 		   &dynsym_strtab[dynsym_tab[ELF64_R_SYM(relatab[i].r_info)].st_name]);
+	}
     }
 }
 

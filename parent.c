@@ -455,6 +455,16 @@ static int	get_call(int pid, sym_strtab * symlist, sym_strtab *node)
   word = ptrace(PTRACE_PEEKTEXT, pid, infos.regs.rip);
   /*  printf("%#lx ?= %#lx\n", infos.regs.rip, node->retaddr); */
   /* SYSCALLS */
+    sym_strtab * symlist2 = symlist;
+  while (symlist2)
+    {
+      if (symlist2->is_rel && infos.regs.rip == symlist2->addr)
+	{
+	addcall(symlist2, node, infos.regs.rip);
+	break;
+	}
+      symlist2 = symlist2->next;
+      }
   if ((word & 0x0000FFFF) == 0x0000050f)
     {
       int st;

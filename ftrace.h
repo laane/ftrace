@@ -31,6 +31,7 @@ struct		sym_strtab
   unsigned long	retaddr;
   calltree_info	*calls;
   sym_strtab	*next;
+  char	is_rel;
 };
 
 struct		calltree_info
